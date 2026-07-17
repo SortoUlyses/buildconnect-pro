@@ -24,7 +24,7 @@ export function JoinPage({ onChoose, onBack }) {
 
           {/* Homeowner card */}
           <button type="button" onClick={()=>onChoose("consumer")}
-            style={{ background:"#fff", border:"2px solid transparent", borderRadius:16, padding:"32px 24px", cursor:"pointer", textAlign:"left", fontFamily:font, transition:"all 0.2s" }}
+            style={{ boxSizing:"border-box", display:"flex", flexDirection:"column", background:"#fff", border:"2px solid transparent", borderRadius:16, padding:"32px 24px", cursor:"pointer", textAlign:"left", fontFamily:font, transition:"all 0.2s" }}
             onMouseEnter={e=>{ e.currentTarget.style.borderColor="#0C447C"; e.currentTarget.style.transform="translateY(-3px)"; e.currentTarget.style.boxShadow="0 12px 40px rgba(0,0,0,0.2)"; }}
             onMouseLeave={e=>{ e.currentTarget.style.borderColor="transparent"; e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="none"; }}>
             <div style={{ fontSize:44, marginBottom:16 }}>🏠</div>
@@ -40,14 +40,16 @@ export function JoinPage({ onChoose, onBack }) {
                 </div>
               ))}
             </div>
-            <div style={{ marginTop:22, display:"block", width:"100%", padding:"11px", borderRadius:9, background:"#0C447C", color:"#fff", fontSize:14, fontWeight:700, textAlign:"center" }}>
-              Join as a Homeowner &gt;
+            <div style={{ boxSizing:"border-box", marginTop:"auto", paddingTop:22, width:"100%" }}>
+              <div style={{ boxSizing:"border-box", width:"100%", padding:"11px", borderRadius:9, background:"#0C447C", color:"#fff", fontSize:14, fontWeight:700, textAlign:"center" }}>
+                Join as a Homeowner &gt;
+              </div>
             </div>
           </button>
 
           {/* Contractor card */}
           <button type="button" onClick={()=>onChoose("contractor")}
-            style={{ background:"linear-gradient(135deg, #082E56 0%, #0C447C 100%)", border:"2px solid rgba(239,159,39,0.4)", borderRadius:16, padding:"32px 24px", cursor:"pointer", textAlign:"left", fontFamily:font, transition:"all 0.2s", position:"relative" }}
+            style={{ boxSizing:"border-box", display:"flex", flexDirection:"column", background:"linear-gradient(135deg, #082E56 0%, #0C447C 100%)", border:"2px solid rgba(239,159,39,0.4)", borderRadius:16, padding:"32px 24px", cursor:"pointer", textAlign:"left", fontFamily:font, transition:"all 0.2s", position:"relative" }}
             onMouseEnter={e=>{ e.currentTarget.style.borderColor="#EF9F27"; e.currentTarget.style.transform="translateY(-3px)"; e.currentTarget.style.boxShadow="0 12px 40px rgba(0,0,0,0.3)"; }}
             onMouseLeave={e=>{ e.currentTarget.style.borderColor="rgba(239,159,39,0.4)"; e.currentTarget.style.transform="translateY(0)"; e.currentTarget.style.boxShadow="none"; }}>
             <div style={{ position:"absolute", top:14, right:14, background:"#EF9F27", color:"#082E56", fontSize:10, fontWeight:800, padding:"3px 10px", borderRadius:20, letterSpacing:"0.04em" }}>EARN MORE</div>
@@ -64,8 +66,10 @@ export function JoinPage({ onChoose, onBack }) {
                 </div>
               ))}
             </div>
-            <div style={{ marginTop:22, display:"block", width:"100%", padding:"11px", borderRadius:9, background:"#EF9F27", color:"#082E56", fontSize:14, fontWeight:700, textAlign:"center" }}>
-              Join as a Contractor &gt;
+            <div style={{ boxSizing:"border-box", marginTop:"auto", paddingTop:22, width:"100%" }}>
+              <div style={{ boxSizing:"border-box", width:"100%", padding:"11px", borderRadius:9, background:"#EF9F27", color:"#082E56", fontSize:14, fontWeight:700, textAlign:"center" }}>
+                Join as a Contractor &gt;
+              </div>
             </div>
           </button>
         </div>
