@@ -15,6 +15,8 @@ export function ClientForm({ onSubmit, prefill }) {
   const [submitted, setSubmitted] = useState(null);
   const [accountCreated, setAccountCreated] = useState(false);
   const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const set = k => v => { setForm(f=>({...f,[k]:v})); setErrors(e=>({...e,[k]:false})); };
 
   const validateStep = (s) => {
@@ -53,7 +55,21 @@ export function ClientForm({ onSubmit, prefill }) {
   const handleSubmit = async () => {
     const e = validateStep(4);
     if (Object.keys(e).length > 0) { setErrors(e); return; }
-    setSubmitted(await onSubmit(form));
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const result = await onSubmit(form);
+      if (!result) {
+        setSubmitError("Something went wrong submitting your project. Please try again, or refresh the page if the problem continues.");
+        setSubmitting(false);
+        return;
+      }
+      setSubmitted(result);
+    } catch (err) {
+      console.error("Failed to submit project:", err);
+      setSubmitError("Something went wrong submitting your project. Please try again, or refresh the page if the problem continues.");
+      setSubmitting(false);
+    }
   };
 
   const TITLE_PLACEHOLDERS = {
@@ -299,6 +315,11 @@ export function ClientForm({ onSubmit, prefill }) {
             <div style={{ background:"#F8F7F4", borderRadius:8, padding:"12px 16px", fontSize:13, color:"#2C2C2A", border:"1.5px solid #D3D1C7" }}>
               Your contact details are kept private and only shared with a contractor after you formally accept their bid.
             </div>
+            {submitError && (
+              <div style={{ marginTop:16, background:"#FCEBEB", border:"1.5px solid #F3C6C6", borderRadius:8, padding:"12px 16px", fontSize:13, color:"#A32D2D", fontWeight:600 }}>
+                {submitError}
+              </div>
+            )}
           </div>
         )}
 
@@ -313,9 +334,9 @@ export function ClientForm({ onSubmit, prefill }) {
               Continue
             </button>
           ) : (
-            <button onClick={handleSubmit}
-              style={{ padding:"10px 28px", borderRadius:8, border:"none", background:"#0F6E56", color:"#fff", fontSize:14, fontWeight:700, cursor:"pointer", fontFamily:"inherit" }}>
-              Submit Project
+            <button onClick={handleSubmit} disabled={submitting}
+              style={{ padding:"10px 28px", borderRadius:8, border:"none", background: submitting?"#B4B2A9":"#0F6E56", color:"#fff", fontSize:14, fontWeight:700, cursor: submitting?"not-allowed":"pointer", fontFamily:"inherit" }}>
+              {submitting ? "Submitting..." : "Submit Project"}
             </button>
           )}
         </div>
