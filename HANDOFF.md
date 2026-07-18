@@ -1,51 +1,50 @@
-# Handoff — 2026-07-15
+# Handoff — 2026-07-17 (EOD)
 
 ## Status
-BuildConnect Pro — a construction leads/bidding marketplace. The original 12,099-line single-file React app has been fully restructured into a real Vite project at `app-scaffold/`, and it now runs on a live Supabase backend (schema, auth, and most core data flows are real — no more localStorage demo data for the pieces listed below).
+BuildConnect Pro is now a fully wired, **live, publicly deployed** app — not just a codebase. Every major feature runs on real Supabase data, and the site is reachable at a real URL with auto-deploy on every push.
 
-### App restructuring (complete)
-- `app-scaffold/` is a proper Vite + React project: `package.json`, `vite.config.js`, `index.html`, `src/main.jsx`, `src/App.jsx`.
-- Original monolith fully split into `constants.js`, `utils.js`, `demoData.js`, `components/ui.jsx`, `lib/` (Supabase client, auth wrappers, DB↔app mappers), and ~29 files under `tabs/`.
-- Verified via bracket-balance checks, an import-completeness audit script, and a reassembled-into-one-file browser preview (React + Babel via CDN — no real bundler in this sandbox).
-- **Known limitation, still true**: `npm install`/`npm run build` have never actually been run — this sandbox has no npm registry access. Needs to happen on a machine with internet access before deploying.
+- **Live site**: https://buildconnect-pro-gamma.vercel.app/
+- **GitHub**: https://github.com/SortoUlyses/buildconnect-pro (public repo)
+- **Vercel project**: sortoulyses-projects/buildconnect-pro — root directory set to `app-scaffold`, auto-deploys from `main`
+- **Supabase project**: Build Connect Pro, ref `jfegqanjqloliyxvheiv`, region us-west-1
 
-### Supabase backend (schema complete, data-layer rewiring mostly done)
-- Live project: **Build Connect Pro**, ref `jfegqanjqloliyxvheiv`, region us-west-1. All schema work done directly against the real project via the Supabase MCP connector.
-- **Schema — all core tables built, RLS on every table, verified clean with security + performance advisors at each step**: `profiles`, `consumer_profiles`, `contractor_profiles`, `leads`, `bids`, `message_threads`, `messages`, `projects`, `estimates`, `invoices`, `work_orders`, `reviews`.
-- `accept_bid(p_bid_id)` — a `SECURITY DEFINER` Postgres function that atomically accepts a bid, declines the others, marks the lead awarded, and creates the `projects` + `work_orders` rows (with a computed 30/40/30 payment schedule). Needed because the consumer's own RLS permissions can't directly create rows owned by the contractor.
-- **Real Supabase Auth** now powers login/signup, replacing the old fake `DEMO_ACCOUNTS` system. `src/lib/auth.js` has `signUp`/`signIn`/`signOut`; `LoginPage`, `ConsumerSignup`, and `ContractorSignup` all call it directly.
-- **Data-layer rewiring from localStorage → real Supabase queries, done slice by slice, each verified live**:
-  - Leads, bids, projects (including `acceptBid`/`declineBid`/`deleteLead`)
-  - Messages / message threads
-  - Work orders
-  - Contractor & consumer profiles
-- `src/lib/mappers.js` holds all the camelCase (app) ↔ snake_case (DB) conversion functions, so most UI components didn't need to change shape.
-- Real issues caught and fixed along the way: an over-exposed signup trigger function (was callable directly via the API), a missing DELETE policy on `message_threads`, missing columns on `leads` and `consumer_profiles` that the forms actually collected, missing foreign-key indexes.
+### Fully wired to Supabase (complete — nothing major left)
+- Leads, bids, projects (accept/decline/delete), messages, work orders, profiles — from earlier sessions
+- Invoices, estimates, reviews — wired this session
+- Schedule (`schedule_events`), expenses (`expenses`) — wired this session
+- Deeper project data — crew, materials, project-level expenses, permit fees, subcontractors, permit documents, job-site photos — each got its own real child table (`project_crew`, `project_materials`, `project_expenses`, `project_permit_fees`, `project_subcontractors`, `project_permits`, `project_photos`), all FK'd to `projects`. The real `projects` table existed since an earlier session (created by `accept_bid`) but the app had never actually read from it — it was write-only. Now fully loaded and used, keyed locally by `bid_id` (bid-won jobs) or the project's own id (manual jobs) so every existing lookup across the app kept working unchanged.
+- Photo storage — contractor profile headshot, portfolio Before/After gallery (new `contractor_photos` table), and expense receipt images all moved off base64-in-a-column to a real public Storage bucket (`contractor-photos`), with owner-scoped write policies.
 
-### Bug fixes (cumulative)
-- All fixes from the original restructuring pass (emoji icons, bid auto-calc, message thread/project/schedule linking bugs, timezone bug via `todayLocal()`/`toLocalDateStr()`, scroll-to-top on navigation) — still in place, unaffected by the Supabase work.
-- **New today**: contractor directory star rating showed a literal text fragment "1/2" next to the stars for any half-star rating (e.g. a 4.5 rating rendered as `****1/2`). Root cause was `tabs/MatchedContractorsView.jsx` line ~178 concatenating the string `"1/2"` instead of rendering another star character. Fixed by rendering one more `"*"` for the half-star case, matching the plain-asterisk style already used everywhere else on the page.
+### Deployment (complete)
+- Local git repo pushed to GitHub (public, user's own account), connected to Vercel with root directory `app-scaffold`.
+- Env vars (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`) set in Vercel.
+- **`npm install && npm run build` now confirmed working for real** — Vercel's build servers have actual internet access, unlike this sandbox, so the long-standing "never actually build-tested" caveat is resolved.
+
+### Critical bug found and fixed this session: RLS infinite recursion
+`bids`' "Consumers can view bids on their leads" policy queried `leads`, and `leads`' "Contractors can view leads they bid on" policy queried `bids` right back — a circular reference. Postgres detects this and kills the query with a 500 error. This silently broke **almost every authenticated read/write in the app** — leads, bids, invoices, estimates, work_orders, message_threads, projects — for both consumer and contractor roles. It had likely been broken since these tables were first created; it was never caught earlier because verification always went through direct SQL (which bypasses RLS) rather than a real logged-in browser session.
+
+It only surfaced because the user connected the Claude in Chrome extension mid-session and we reproduced their exact bug report live — watched the network tab, saw every Supabase query returning 500, traced it to the policy cycle. Fixed with two `SECURITY DEFINER` helper functions (`consumer_owns_lead`, `contractor_bid_on_lead`) that break the cycle by bypassing RLS internally on just that one lookup. Verified fixed end-to-end: the same submit-project flow that silently failed now succeeds with a real reference ID.
+
+**Lesson for next time**: any time two tables' RLS policies reference each other, check for recursion before shipping, and test the actual authenticated browser path, not just direct SQL.
+
+### Other bugs fixed this session
+- **JoinPage.jsx** — the two role-choice cards' bottom CTA buttons weren't `box-sizing: border-box`, so they overflowed their card slightly (read as "shifted right"), and weren't anchored to the card bottom, so a card with less text left its button sitting higher than the other's. Fixed with border-box + flex-column + `margin-top: auto`.
+- **ClientForm.jsx** (Submit Project flow) — the final submit button failed completely silently on error, no message, nothing visibly happening. Added a real try/catch, a visible red error banner, and a disabled "Submitting..." state. Caught a follow-on bug in this same fix during live testing: `submitting` never reset to `false` after a *successful* submit, so "Submit Another Project" left the button stuck showing "Submitting..." forever. Fixed by resetting it in both the success path and the reset handler.
 
 ## Open decisions
-- **Hosting platform**: Vercel recommended (simplest Vite auto-detect, common Supabase pairing) — not yet formally chosen/set up.
-- **Domain**: not purchased — not required to go live.
-- **Real build verification**: still needs `npm install && npm run build` on a machine with internet access.
-
-## Not yet wired to real data (tables exist, still deferred)
-- Invoices / estimates
-- Reviews
-- Schedule, expenses, and deeper project-manager data (crew, materials, permits, subcontractors, project photos) — these need new child tables that haven't been designed yet
-- Contractor portfolio photos — currently stored as base64 in a text column, not a real Storage bucket
+- **Custom domain**: not purchased, explicitly deprioritized by the user in favor of functional correctness first. Zero cost to add later — ~15 minutes in Vercel once purchased.
+- **Repo visibility**: public on GitHub. Was going to be private, but a Vercel git-identity-verification quirk on the Hobby plan made public the simpler path. No secrets are committed (`.env` is gitignored), so no real downside.
 
 ## Next steps
-1. Wire invoices/estimates and reviews to real Supabase queries (tables already exist).
-2. Design and build tables for schedule, expenses, and deeper project data; wire those tabs.
-3. Move contractor photos to a real Supabase Storage bucket.
-4. Run `npm install && npm run build` on a machine with internet access to confirm the split codebase actually compiles.
-5. Pick a hosting platform (Vercel recommended) and deploy.
-6. Optional: purchase and connect a custom domain.
+1. **Keep testing live flows as a real user would.** Contractor signup was in progress when this handoff was written (see below) — pick that back up, then test bidding, accepting a bid, messaging, invoicing a completed job, and leaving a review, end to end with real browser sessions on both roles. Assume more silent-failure bugs like the ones found today are still lurking; the fix pattern is the same one used in `ClientForm.jsx` — never let an error just do nothing, always surface it.
+2. Optional: purchase and connect a custom domain whenever convenient.
+3. Optional, low-priority: Supabase security advisor flags two pre-existing warnings — leaked-password-protection is off, and `accept_bid` is a publicly-callable `SECURITY DEFINER` function (intentional, but worth a second look someday). Neither is a blocker.
 
 ## Working notes for whoever picks this up
 - Standing rules from the user, still in force: always preview cosmetic/functional changes before touching code; keep every fix as simple as possible, no over-engineering; ask permission before deleting any file; never use/expose the Supabase `service_role` key — only the `anon`/publishable key (`sb_publishable_Hu90IdW6dGiwiwYTcbNs2Q_A1N2j1iE`) is safe client-side.
+- **New operational rule, important**: `Downloads/BuildConnectPro` is now a live git repo on the user's own Mac, synced into this sandbox through a bridge that does not support git's file-locking model. Running *any* git command from Claude's side against this path — even a read-only one like `git status` — can leave a stray `.git/index.lock` file behind, and because the folder is genuinely shared (not just mirrored), that stray lock blocks the *user's own Terminal* from committing too. This actually happened this session. **Claude should not run git commands against this folder at all, ever.** Code changes happen via the normal file-edit tools; the user runs `git add / commit / push` themselves in their own Terminal. If a stray lock does appear, the fix is `rm -f .git/index.lock` (safe — deletes just that one file, not the repo).
+- Live site: https://buildconnect-pro-gamma.vercel.app/ — auto-deploys on every push to `main`.
+- GitHub: https://github.com/SortoUlyses/buildconnect-pro (public).
+- A contractor test account was mid-onboarding when this handoff was written: `sortoulyses+contractor@gmail.com`, trades Electrical + Plumbing, Starter (free) plan, bio filled in, not yet finished/submitted. Pick that back up or redo it next session.
 - The user triggers a handoff refresh by typing "EOD" — update this file's Status/Open decisions/Next steps at that point.
-- This project now lives at a permanent path (`Downloads/BuildConnectPro`) so it can be reconnected as a folder in any new Cowork session — no longer tied to one session's temp storage.
+- This project lives at a permanent path (`Downloads/BuildConnectPro`) so it can be reconnected as a folder in any new Cowork session — no longer tied to one session's temp storage.
