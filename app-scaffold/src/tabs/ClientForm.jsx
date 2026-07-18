@@ -65,6 +65,7 @@ export function ClientForm({ onSubmit, prefill }) {
         return;
       }
       setSubmitted(result);
+      setSubmitting(false);
     } catch (err) {
       console.error("Failed to submit project:", err);
       setSubmitError("Something went wrong submitting your project. Please try again, or refresh the page if the problem continues.");
@@ -105,7 +106,7 @@ export function ClientForm({ onSubmit, prefill }) {
         <h2 style={{ fontSize:24, fontWeight:800, color:"#0F6E56", marginBottom:8, letterSpacing:"-0.02em" }}>Project Submitted</h2>
         <p style={{ fontSize:14, color:"#2C2C2A", marginBottom:4 }}>Reference ID: <strong style={{ color:"#185FA5" }}>#{submitted.id.slice(-6).toUpperCase()}</strong></p>
         <p style={{ fontSize:13, color:"#2C2C2A", lineHeight:1.7, marginBottom:24 }}>Licensed contractors in your area will review your project and submit bids within 24-48 hours. You will be contacted at the email and phone number you provided.</p>
-        <button onClick={()=>{ setSubmitted(null); setForm({ propertyType:"",trade:"",projectTitle:"",description:"",urgency:"",budget:"",sqft:"",address:"",city:"",state:"CA",zip:"",name:"",email:"",phone:"",company:"" }); setStep(1); }}
+        <button onClick={()=>{ setSubmitted(null); setForm({ propertyType:"",trade:"",projectTitle:"",description:"",urgency:"",budget:"",sqft:"",address:"",city:"",state:"CA",zip:"",name:"",email:"",phone:"",company:"" }); setStep(1); setSubmitting(false); setSubmitError(""); setErrors({}); }}
           style={{ padding:"10px 28px", borderRadius:8, border:"1.5px solid #D3D1C7", background:"#fff", fontSize:14, fontWeight:600, cursor:"pointer", fontFamily:"inherit", color:"#2C2C2A" }}>
           Submit Another Project
         </button>
