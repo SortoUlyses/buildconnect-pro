@@ -3,7 +3,7 @@ import { S, TRADES, URGENCY, BUDGET_RANGES, TRADE_BUDGET_RANGES, INV_STATUS, EST
 import { load, save, uid, timeAgo, fmt$, getDateRange, filterByDateRange, sameProject, matchProject } from "../utils.js";
 import { Btn, Badge, Field, Card, SectionTitle } from "../components/ui.jsx";
 
-export function DirectProjectSubmit({ contractors, onSubmit, onBack, backLabel, estimatorPrefill }) {
+export function DirectProjectSubmit({ contractors, onSubmit, onBack, backLabel, estimatorPrefill, auth, onNeedAuth }) {
   const font = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
@@ -77,6 +77,7 @@ export function DirectProjectSubmit({ contractors, onSubmit, onBack, backLabel, 
       directContractorIds: contractors.map(c=>c.id),
       directContractorNames: contractors.map(c=>c.name),
     };
+    if (!auth) { onNeedAuth?.(lead); return; }
     onSubmit(lead);
     setSubmitted(true);
   };

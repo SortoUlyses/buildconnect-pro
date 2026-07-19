@@ -841,6 +841,8 @@ export default function App() {
             <DirectProjectSubmit
               contractors={directContractors}
               estimatorPrefill={estimatorPrefill}
+              auth={auth}
+              onNeedAuth={lead => { setPendingLead(lead); navigateTo("login"); }}
               onSubmit={lead => { addLead(lead); navigateTo("myLeads"); }}
               onBack={() => {
                 if (matchedContext) {
