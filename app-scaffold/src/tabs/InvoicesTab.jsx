@@ -118,7 +118,9 @@ export function InvoicesTab({ invoices, setInvoices, onSendToProjects, projectLi
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 3, flexWrap: "wrap" }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#2C2C2A" }}>{inv.number}</span>
-            <Badge text={s.label} color={s.color} bg={s.bg} />
+            <button onClick={() => cycleStatus(inv)} title="Click to change status" style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
+              <Badge text={s.label} color={s.color} bg={s.bg} />
+            </button>
             {showOverdueBadge && days > 0 && (
               <Badge text={`${days} day${days !== 1 ? "s" : ""} overdue`} color="#A32D2D" bg="#FCEBEB" />
             )}
@@ -130,7 +132,6 @@ export function InvoicesTab({ invoices, setInvoices, onSendToProjects, projectLi
         <div style={{ display: "flex", gap: 5, flexWrap: "wrap" }}>
           <Btn onClick={() => { setCurrent(inv); setView("preview"); }} variant="ghost" small>View</Btn>
           <Btn onClick={() => openEdit(inv)} variant="ghost" small>Edit</Btn>
-          <Btn onClick={() => cycleStatus(inv)} variant="ghost" small>Status</Btn>
           {showOverdueBadge && (
             <Btn onClick={() => copyReminder(inv)} variant={copiedReminderId === inv.id ? "success" : "ghost"} small>
               {copiedReminderId === inv.id ? "Copied!" : "Copy Reminder"}
