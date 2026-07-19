@@ -107,10 +107,9 @@ export function DirectProjectSubmit({ contractors, onSubmit, onBack, backLabel, 
     </div>
   );
 
-  const renderPropBtn = (value, label, icon) => (
+  const renderPropBtn = (value, label) => (
     <button type="button" onClick={() => set("propertyType")(value)}
       style={{ flex:1, padding:"18px 12px", borderRadius:12, border: form.propertyType===value?"2px solid #0C447C":"1.5px solid #D3D1C7", background: form.propertyType===value?"#E6F1FB":"#fff", cursor:"pointer", fontFamily:font, textAlign:"center", transition:"all 0.15s" }}>
-      <div style={{ fontSize:28, marginBottom:8 }}>{icon}</div>
       <div style={{ fontSize:14, fontWeight:700, color: form.propertyType===value?"#0C447C":"#2C2C2A" }}>{label}</div>
     </button>
   );
@@ -227,8 +226,8 @@ export function DirectProjectSubmit({ contractors, onSubmit, onBack, backLabel, 
               </div>
             ) : (
               <div style={{ display:"flex", gap:12 }}>
-                {renderPropBtn("Residential", "Residential", "home")}
-                {renderPropBtn("Commercial", "Commercial", "office")}
+                {renderPropBtn("Residential", "Residential")}
+                {renderPropBtn("Commercial", "Commercial")}
               </div>
             )}
           </div>
