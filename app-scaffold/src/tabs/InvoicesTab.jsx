@@ -6,9 +6,9 @@ import { supabase } from "../lib/supabaseClient.js";
 import { invoiceFromDb, invoiceToDb } from "../lib/mappers.js";
 
 // — Invoice Tab ---------------------------------------------------------------
-export const EMPTY_INV = () => ({ id: uid(), number: `INV-${Date.now().toString().slice(-5)}`, client: "", email: "", project: "", date: new Date().toISOString().slice(0, 10), due: "", status: "draft", notes: "", items: [{ desc: "", qty: 1, rate: "" }] });
+export const EMPTY_INV = () => ({ id: uid(), number: `INV-${Date.now().toString().slice(-5)}`, client: "", email: "", project: "", projectId: "", date: new Date().toISOString().slice(0, 10), due: "", status: "draft", notes: "", items: [{ desc: "", qty: 1, rate: "" }] });
 
-export function InvoicesTab({ invoices, setInvoices, onSendToProjects, projectLinkedInvoiceIds, auth }) {
+export function InvoicesTab({ invoices, setInvoices, onSendToProjects, projectLinkedInvoiceIds, auth, projects }) {
   const [view, setView] = useState("list");
   const [current, setCurrent] = useState(null);
   const [selected, setSelected] = useState(new Set());
@@ -96,7 +96,7 @@ export function InvoicesTab({ invoices, setInvoices, onSendToProjects, projectLi
   const overdueIds = new Set(overdueInvoices.map(i => i.id));
   const mainInvoices = visibleInvoices.filter(i => !overdueIds.has(i.id));
 
-  if (view === "edit" && current) return <InvoiceEditor inv={current} setInv={setCurrent} onSave={saveInv} onCancel={() => setView("list")} total={total} allInvoices={invoices} />;
+  if (view === "edit" && current) return <InvoiceEditor inv={current} setInv={setCurrent} onSave={saveInv} onCancel={() => setView("list")} total={total} allInvoices={invoices} projects={projects} />;
   if (view === "preview" && current) return <InvoicePreview inv={current} total={total} onBack={() => setView("list")} />;
 
   const DATE_FILTERS = [["all","All Time"],["month","This Month"],["quarter","Last 3 Months"],["year","This Year"]];
@@ -258,11 +258,21 @@ export function InvoicesTab({ invoices, setInvoices, onSendToProjects, projectLi
   );
 }
 
-export function InvoiceEditor({ inv, setInv, onSave, onCancel, total, allInvoices = [] }) {
+export function InvoiceEditor({ inv, setInv, onSave, onCancel, total, allInvoices = [], projects = {} }) {
   const set = k => v => setInv(d => ({ ...d, [k]: v }));
   const setItem = (i, k, v) => setInv(d => { const items = [...d.items]; items[i] = { ...items[i], [k]: v }; return { ...d, items }; });
   const addItem = () => setInv(d => ({ ...d, items: [...d.items, { desc: "", qty: 1, rate: "" }] }));
   const removeItem = i => setInv(d => ({ ...d, items: d.items.filter((_, idx) => idx !== i) }));
+
+  // Real projects the contractor can pick from, so the invoice links back
+  // to an actual project id instead of only a freeform text label.
+  const projectOptions = Object.values(projects).filter(p => p.projectTitle);
+  const linkedProject = projectOptions.find(p => p.id === inv.projectId);
+  const pickProject = val => {
+    if (val === "__manual__") { setInv(d => ({ ...d, projectId: "" })); return; }
+    const p = projectOptions.find(p => p.id === val);
+    setInv(d => ({ ...d, projectId: val, project: p ? p.projectTitle : d.project }));
+  };
 
   // Duplicate detection — check if another open invoice exists for the same client + project
   const duplicate = inv.client && inv.project
@@ -281,7 +291,17 @@ export function InvoiceEditor({ inv, setInv, onSave, onCancel, total, allInvoice
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 16px" }}>
         <Field label="Client Name" value={inv.client} onChange={set("client")} placeholder="Jane Smith" required />
         <Field label="Client Email" type="email" value={inv.email} onChange={set("email")} placeholder="jane@email.com" />
-        <Field label="Project / Description" value={inv.project} onChange={set("project")} placeholder="Kitchen remodel — phase 2" />
+        <Field label="Project / Description">
+          <select value={linkedProject ? inv.projectId : "__manual__"} onChange={e => pickProject(e.target.value)}
+            style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1.5px solid #D3D1C7", fontSize: 14, fontFamily: "inherit" }}>
+            <option value="__manual__">Other / type manually</option>
+            {projectOptions.map(p => <option key={p.id} value={p.id}>{p.projectTitle}</option>)}
+          </select>
+          {!linkedProject && (
+            <input value={inv.project} onChange={e => set("project")(e.target.value)} placeholder="Kitchen remodel — phase 2"
+              style={{ marginTop: 8, width: "100%", boxSizing: "border-box", padding: "9px 12px", borderRadius: 8, border: "1.5px solid #D3D1C7", fontSize: 14, fontFamily: "inherit" }} />
+          )}
+        </Field>
         <Field label="Status">
           <select value={inv.status} onChange={e => set("status")(e.target.value)} style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1.5px solid #D3D1C7", fontSize: 14, fontFamily: "inherit" }}>
             {Object.entries(INV_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}

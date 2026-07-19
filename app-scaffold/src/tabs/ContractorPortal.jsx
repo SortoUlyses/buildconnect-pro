@@ -291,7 +291,7 @@ export function ContractorPortal({ auth, leads, bids, onBid, onAcceptBid, profil
           {renderSubNav(BUSINESS_TABS, businessTab, setBusinessTab)}
           {businessTab==="projects"  && <ProjectManagerTab bids={bids} leads={leads} projects={projects} setProjects={setProjects} invoices={invoices} expenses={expenses} setExpenses={setExpenses} schedule={schedule} pendingFromInvoice={pendingProjectInvoice} onConsumePendingInvoice={()=>setPendingProjectInvoice(null)} auth={auth} />}
           {businessTab==="estimates" && <EstimatesTab estimates={estimates} setEstimates={setEstimates} invoices={invoices} setInvoices={setInvoices} auth={auth} />}
-          {businessTab==="invoices"  && <InvoicesTab invoices={invoices} setInvoices={setInvoices} onSendToProjects={sendInvoiceToProjects} projectLinkedInvoiceIds={projectLinkedInvoiceIds} auth={auth} />}
+          {businessTab==="invoices"  && <InvoicesTab invoices={invoices} setInvoices={setInvoices} onSendToProjects={sendInvoiceToProjects} projectLinkedInvoiceIds={projectLinkedInvoiceIds} auth={auth} projects={projects} />}
           {businessTab==="expenses"  && <ExpensesTab expenses={expenses} setExpenses={setExpenses} invoices={invoices} projects={projects} bids={bids} leads={leads} auth={auth} />}
           {businessTab==="schedule"  && <ScheduleTab schedule={schedule} setSchedule={setSchedule} projects={projects} setProjects={setProjects} bids={bids} leads={leads} auth={auth} />}
         </>
