@@ -41,12 +41,11 @@ export function InvoicesTab({ invoices, setInvoices, onSendToProjects, projectLi
     setSelected(prev => { const s = new Set(prev); s.delete(id); return s; });
   };
 
-  const cycleStatus = async inv => {
-    const order = ["draft", "sent", "paid", "overdue"];
-    const next = order[(order.indexOf(inv.status) + 1) % order.length];
-    const { error } = await supabase.from("invoices").update({ status: next }).eq("id", inv.id);
+  const setStatus = async (inv, status) => {
+    if (status === inv.status) return;
+    const { error } = await supabase.from("invoices").update({ status }).eq("id", inv.id);
     if (error) { console.error("Failed to update invoice status:", error); return; }
-    setInvoices(prev => prev.map(i => i.id === inv.id ? { ...i, status: next } : i));
+    setInvoices(prev => prev.map(i => i.id === inv.id ? { ...i, status } : i));
   };
 
   const applyBulkStatus = async () => {
@@ -109,7 +108,6 @@ export function InvoicesTab({ invoices, setInvoices, onSendToProjects, projectLi
   };
 
   const renderInvoiceRow = (inv, showOverdueBadge = false) => {
-    const s = INV_STATUS[inv.status] || INV_STATUS.draft;
     const days = daysOverdue(inv);
     return (
       <div key={inv.id} style={{ background: "#fff", border: `1.5px solid ${selected.has(inv.id) ? "#185FA5" : "#D3D1C7"}`, borderRadius: 10, padding: "12px 16px", marginBottom: 8, display: "flex", alignItems: "center", gap: 12 }}>
@@ -118,9 +116,14 @@ export function InvoicesTab({ invoices, setInvoices, onSendToProjects, projectLi
         <div style={{ flex: 1 }}>
           <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 3, flexWrap: "wrap" }}>
             <span style={{ fontSize: 14, fontWeight: 700, color: "#2C2C2A" }}>{inv.number}</span>
-            <button onClick={() => cycleStatus(inv)} title="Click to change status" style={{ background: "none", border: "none", padding: 0, cursor: "pointer" }}>
-              <Badge text={s.label} color={s.color} bg={s.bg} />
-            </button>
+            <div style={{ display: "flex", gap: 4 }}>
+              {Object.entries(INV_STATUS).map(([key, val]) => (
+                <button key={key} onClick={() => setStatus(inv, key)}
+                  style={{ fontSize: 11, fontWeight: 700, padding: "3px 10px", borderRadius: 20, letterSpacing: "0.04em", textTransform: "uppercase", cursor: "pointer", fontFamily: "inherit", border: inv.status === key ? "none" : "1.5px solid #D3D1C7", background: inv.status === key ? val.bg : "#fff", color: inv.status === key ? val.color : "#888780" }}>
+                  {val.label}
+                </button>
+              ))}
+            </div>
             {showOverdueBadge && days > 0 && (
               <Badge text={`${days} day${days !== 1 ? "s" : ""} overdue`} color="#A32D2D" bg="#FCEBEB" />
             )}
