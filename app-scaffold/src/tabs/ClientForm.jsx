@@ -4,7 +4,7 @@ import { load, save, uid, timeAgo, fmt$, getDateRange, filterByDateRange, samePr
 import { Btn, Badge, Field, Card, SectionTitle } from "../components/ui.jsx";
 
 // — Client Submit Form --------------------------------------------------------
-export function ClientForm({ onSubmit, prefill }) {
+export function ClientForm({ onSubmit, prefill, auth, onNeedAuth }) {
   const [form, setForm] = useState({
     propertyType:"", trade: prefill?.trade||"", projectTitle:"", description:"",
     urgency:"", budget:"", sqft:"", address:"", city:"",
@@ -55,6 +55,7 @@ export function ClientForm({ onSubmit, prefill }) {
   const handleSubmit = async () => {
     const e = validateStep(4);
     if (Object.keys(e).length > 0) { setErrors(e); return; }
+    if (!auth) { onNeedAuth(form); return; }
     setSubmitting(true);
     setSubmitError("");
     try {

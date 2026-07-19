@@ -75,6 +75,7 @@ export default function App() {
 
   // — Auth ---------------------------------------------------------------------
   const [auth, setAuth] = useState(null);
+  const [pendingLead, setPendingLead] = useState(null);
 
   const [consumerProfile, setConsumerProfile_] = useState({
     name:"", email:"", phone:"", company:"",
@@ -104,7 +105,14 @@ export default function App() {
   }, []);
 
   // Called after a successful sign-in or sign-up to route to the right place
-  const goAfterAuth = role => {
+  const goAfterAuth = async role => {
+    if (pendingLead) {
+      const lead = pendingLead;
+      setPendingLead(null);
+      await addLead(lead);
+      navigateTo("myLeads");
+      return;
+    }
     navigateTo(role === "contractor" ? "contractor_dashboard" : "home");
   };
 
@@ -545,7 +553,9 @@ export default function App() {
   };
 
   const addLead = async form => {
-    const { data, error } = await supabase.from("leads").insert({ ...leadToDb(form), consumer_id: auth.id }).select().single();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) { console.error("Failed to add lead: not signed in"); return null; }
+    const { data, error } = await supabase.from("leads").insert({ ...leadToDb(form), consumer_id: session.user.id }).select().single();
     if (error) { console.error("Failed to add lead:", error); return null; }
     const l = leadFromDb(data);
     setLeads(prev => [l, ...prev]);
@@ -867,14 +877,14 @@ export default function App() {
           {view==="submit" && (
             <>
               <div style={{ display:"flex", gap:0, borderBottom:"1.5px solid #F1EFE8", marginBottom:28, paddingBottom:16 }}>
-                {[["No fees or account required","Free to submit, free to receive bids."],["Your privacy is protected","Contact info shared only after you accept a bid."],["Licensed contractors only","Every contractor is verified before joining the platform."]].map(([title, desc]) => (
+                {[["Free for homeowners","Free to submit, free to receive bids."],["Your privacy is protected","Contact info shared only after you accept a bid."],["Licensed contractors only","Every contractor is verified before joining the platform."]].map(([title, desc]) => (
                   <div key={title} style={{ flex:1, paddingRight:24, borderRight:"1.5px solid #F1EFE8", marginRight:24 }}>
                     <div style={{ fontSize:13, fontWeight:700, color:"#0C447C", marginBottom:3 }}>{title}</div>
                     <div style={{ fontSize:12, color:"#2C2C2A" }}>{desc}</div>
                   </div>
                 ))}
               </div>
-              <ClientForm onSubmit={addLead} prefill={quickLeadPrefill} />
+              <ClientForm onSubmit={addLead} prefill={quickLeadPrefill} auth={auth} onNeedAuth={form => { setPendingLead(form); navigateTo("login"); }} />
             </>
           )}
           {view==="myLeads" && (
