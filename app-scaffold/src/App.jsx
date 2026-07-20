@@ -128,7 +128,7 @@ export default function App() {
     if (!auth) { setLeads([]); setBids([]); return; }
     (async () => {
       const [{ data: leadRows, error: leadErr }, { data: bidRows, error: bidErr }] = await Promise.all([
-        supabase.from("leads").select("*").order("created_at", { ascending: false }),
+        supabase.from("leads_directory").select("*").order("created_at", { ascending: false }),
         supabase.from("bids").select("*").order("created_at", { ascending: false }),
       ]);
       if (leadErr) console.error("Failed to load leads:", leadErr);
