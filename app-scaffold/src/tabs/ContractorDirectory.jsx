@@ -314,7 +314,7 @@ export function ContractorModal({ contractor, onClose, onSubmitProject }) {
 }
 
 // — Contractor Directory (consumer-facing) ------------------------------------
-export function ContractorDirectory({ liveProfile, livePhotos, onSubmitProject, onJoinAsContractor, onViewProfile }) {
+export function ContractorDirectory({ realContractors, onSubmitProject, onJoinAsContractor, onViewProfile }) {
   const [search, setSearch] = useState("");
   const [tradeFilter, setTradeFilter] = useState("");
   const [cityFilter, setCityFilter] = useState("");
@@ -322,15 +322,10 @@ export function ContractorDirectory({ liveProfile, livePhotos, onSubmitProject, 
   const [sortBy, setSortBy] = useState("rating"); // rating | reviews | years
   const [selected, setSelected] = useState(null);
 
-  // Merge live contractor profile into directory if they have a name
+  // Real, registered contractors first, demo profiles filling out the rest
+  // of the directory while supply is still thin.
   const allContractors = [
-    ...(liveProfile?.name ? [{
-      ...liveProfile,
-      id: "live",
-      rating: liveProfile.rating || 5.0,
-      reviewCount: liveProfile.reviewCount || 0,
-      photos: livePhotos || [],
-    }] : []),
+    ...(realContractors || []),
     ...DEMO_CONTRACTORS,
   ];
 

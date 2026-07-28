@@ -5,7 +5,7 @@ import { DEMO_CONTRACTORS, MATCHED_CONTRACTORS } from './demoData.js';
 import { Btn, Badge, Field, Card, SectionTitle } from './components/ui.jsx';
 import { supabase } from './lib/supabaseClient.js';
 import { signOut } from './lib/auth.js';
-import { leadFromDb, leadToDb, bidFromDb, bidToDb, threadFromDb, workOrderFromDb, contractorProfileFromDb, consumerProfileFromDb, invoiceFromDb, estimateFromDb, reviewFromDb, scheduleEventFromDb, expenseFromDb, contractorPhotoFromDb, projectFromDb, projectCrewFromDb, projectMaterialFromDb, projectExpenseRowFromDb, projectPermitFeeFromDb, projectSubcontractorFromDb, projectPermitFromDb, projectPhotoRowFromDb } from './lib/mappers.js';
+import { leadFromDb, leadToDb, bidFromDb, bidToDb, threadFromDb, workOrderFromDb, contractorProfileFromDb, consumerProfileFromDb, contractorDirectoryFromDb, invoiceFromDb, estimateFromDb, reviewFromDb, scheduleEventFromDb, expenseFromDb, contractorPhotoFromDb, projectFromDb, projectCrewFromDb, projectMaterialFromDb, projectExpenseRowFromDb, projectPermitFeeFromDb, projectSubcontractorFromDb, projectPermitFromDb, projectPhotoRowFromDb } from './lib/mappers.js';
 
 import { ProfileTab } from './tabs/ProfileTab.jsx';
 import { PhotosTab, CaptionEditor } from './tabs/PhotosTab.jsx';
@@ -48,6 +48,17 @@ export default function App() {
   const [bids, setBids] = useState([]);
   // profile/consumerProfile now come from Supabase (see the loading effects near the auth section)
   const [profile, setProfile_] = useState({ name:"", company:"", email:"", phone:"", city:"", state:"", bio:"", trades:[], licensed:false, insured:false, backgroundCheck:false, website:"", licenseNum:"", insurance:"", years:"", serviceArea:"", photo:"" });
+  // Real, registered contractors for the Find Contractors directory --
+  // publicly readable (including guests), so this loads once on mount and
+  // isn't gated by auth at all.
+  const [realContractors, setRealContractors] = useState([]);
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase.from("contractor_directory").select("*");
+      if (error) { console.error("Failed to load contractor directory:", error); return; }
+      setRealContractors((data || []).map(contractorDirectoryFromDb));
+    })();
+  }, []);
   // photos (portfolio before/after gallery) now come from Supabase (see the
   // loading effects near the auth section)
   const [photos, setPhotos] = useState([]);
@@ -487,6 +498,36 @@ export default function App() {
       });
     });
   }, [leads]);
+
+  // Slow clock tick so the fallback check below re-runs periodically even
+  // when no new data has loaded (deadlines pass in real time, not on fetch).
+  const [clockTick, setClockTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setClockTick(t => t + 1), 60000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Consumer: a lead sent directly to one contractor got no response in time
+  // and fell back to the open pool — let the homeowner know it's still moving.
+  const seenFallbackRef = useRef(new Set());
+  useEffect(() => {
+    const fellBack = leads.filter(l =>
+      l.contractorId && l.directDeadline &&
+      new Date(l.directDeadline) <= new Date() &&
+      l.status !== "awarded" &&
+      !seenFallbackRef.current.has(l.id)
+    );
+    fellBack.forEach(l => {
+      seenFallbackRef.current.add(l.id);
+      const contractorName = realContractors.find(c => c.id === l.contractorId)?.name || "the contractor";
+      addNotification({
+        type: "lead_fallback",
+        title: "Project Opened to More Contractors",
+        body: contractorName + " didn't respond in time to your \"" + (l.projectTitle||"project") + "\" request, so it's now open to other matching contractors in your area.",
+        nav: "myLeads",
+      });
+    });
+  }, [leads, realContractors, clockTick]);
 
   const navigateTo = (newView, prefill = null) => {
     window.scrollTo(0, 0);
@@ -969,7 +1010,7 @@ export default function App() {
             <>
               <h2 style={{ fontSize:22, fontWeight:800, color:"#0C447C", margin:"0 0 4px", letterSpacing:"-0.02em" }}>Find Contractors Near You</h2>
               <p style={{ fontSize:14, color:"#2C2C2A", margin:"0 0 20px" }}>Browse verified, licensed contractors in your area. Click any profile to see their full portfolio and contact info.</p>
-              <ContractorDirectory liveProfile={profile} livePhotos={photos} onSubmitProject={c => navigateTo("direct-submit", { contractors: [c] })} onJoinAsContractor={()=>navigateTo("contractor-signup")} onViewProfile={c => openProfile(c, null)} />
+              <ContractorDirectory realContractors={realContractors} onSubmitProject={c => navigateTo("direct-submit", { contractors: [c] })} onJoinAsContractor={()=>navigateTo("contractor-signup")} onViewProfile={c => openProfile(c, null)} />
             </>
           )}
           {(view==="contractor_dashboard"||view==="contractor_leads"||view==="contractor_messages"||view==="contractor_business"||view==="contractor_profile") && (

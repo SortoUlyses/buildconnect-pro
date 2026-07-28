@@ -55,8 +55,17 @@ export function DirectProjectSubmit({ contractors, onSubmit, onBack, backLabel, 
   const canProceed = form.propertyType && form.description.trim().length > 10 && form.budget;
   const canSubmit  = form.name.trim() && form.phone.trim();
 
+  // Real Supabase accounts always have a standard UUID id. Demo/fixture
+  // contractors (and the old "live" self-preview id) don't, so this tells
+  // us whether there's an actual account to route the lead to.
+  const isRealContractorId = id => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id || "");
+
   const handleSubmit = () => {
     if (!canSubmit) return;
+    // Exclusivity only makes sense for a single real contractor -- submitting
+    // to several people at once, or to a demo profile with no real account
+    // behind it, falls back to today's behavior: a normal open lead.
+    const targetedDirectly = contractors.length === 1 && isRealContractorId(primary.id);
     const lead = {
       id: uid(),
       createdAt: new Date().toISOString(),
@@ -76,6 +85,8 @@ export function DirectProjectSubmit({ contractors, onSubmit, onBack, backLabel, 
       status: "open",
       directContractorIds: contractors.map(c=>c.id),
       directContractorNames: contractors.map(c=>c.name),
+      contractorId: targetedDirectly ? primary.id : null,
+      directDeadline: targetedDirectly ? new Date(Date.now() + 48*60*60*1000).toISOString() : null,
     };
     if (!auth) { onNeedAuth?.(lead); return; }
     onSubmit(lead);

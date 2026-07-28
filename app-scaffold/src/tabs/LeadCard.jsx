@@ -5,7 +5,7 @@ import { Btn, Badge, Field, Card, SectionTitle } from "../components/ui.jsx";
 import { WorkOrderModal } from "./WorkOrderModal.jsx";
 import { MATCHED_CONTRACTORS } from "../demoData.js";
 
-export function LeadCard({ lead, bids, onBid, contractorMode, onAcceptBid, onDeclineBid, estimates, setEstimates, onMessageLead, saved, onToggleSave, onMessageBid, projects, reviews, setReviews, profile, onViewContractorProfile, workOrders, onSignWorkOrder }) {
+export function LeadCard({ lead, bids, onBid, contractorMode, onAcceptBid, onDeclineBid, estimates, setEstimates, onMessageLead, saved, onToggleSave, onMessageBid, projects, reviews, setReviews, profile, onViewContractorProfile, workOrders, onSignWorkOrder, contractorId }) {
   const [expanded, setExpanded] = useState(false);
   const [bidForm, setBidForm] = useState({
     timeline:"", message:"",
@@ -28,6 +28,11 @@ export function LeadCard({ lead, bids, onBid, contractorMode, onAcceptBid, onDec
   const [openWorkOrderId, setOpenWorkOrderId] = useState(null);
   const trade = TRADES[lead.trade] || {};
   const leadBids = bids.filter(b => b.leadId === lead.id);
+
+  // Still-exclusive direct submission: this lead was sent to me specifically
+  // and the window hasn't opened up to everyone else yet.
+  const isSentDirectlyToMe = contractorMode && contractorId && lead.contractorId === contractorId
+    && (!lead.directDeadline || new Date(lead.directDeadline) > new Date());
 
   // Estimate attached to this lead (contractor-created, consumer-visible)
   const leadEstimate = estimates ? estimates.find(e => e.leadId === lead.id) : null;
@@ -102,6 +107,7 @@ export function LeadCard({ lead, bids, onBid, contractorMode, onAcceptBid, onDec
               <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap", marginBottom:4 }}>
                 <span style={{ fontSize:15, fontWeight:700, color:"#2C2C2A" }}>{lead.projectTitle}</span>
                 <Badge text={lead.status === "awarded" ? "Awarded" : "Open for Bids"} color={lead.status==="awarded"?"#185FA5":"#0F6E56"} bg={lead.status==="awarded"?"#E6F1FB":"#E1F5EE"} />
+                {isSentDirectlyToMe && <Badge text=" Sent Directly to You" color="#854F0B" bg="#FAEEDA" />}
                 {leadEstimate && <Badge text=" Estimate Attached" color="#534AB7" bg="#EEEDFE" />}
               </div>
               <div style={{ display:"flex", gap:8, flexWrap:"wrap" }}>

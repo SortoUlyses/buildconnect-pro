@@ -22,6 +22,11 @@ export const leadFromDb = row => ({
   company: row.company,
   status: row.status,
   createdAt: row.created_at,
+  // contractorId: set only for a lead submitted directly to one specific
+  // contractor. directDeadline: when that exclusivity expires and the lead
+  // opens up to all contractors of matching trade -- see leads_directory RLS.
+  contractorId: row.contractor_id,
+  directDeadline: row.direct_deadline,
 });
 
 export const leadToDb = lead => ({
@@ -40,6 +45,8 @@ export const leadToDb = lead => ({
   zip: lead.zip,
   sqft: lead.sqft,
   company: lead.company,
+  contractor_id: lead.contractorId || null,
+  direct_deadline: lead.directDeadline || null,
 });
 
 export const bidFromDb = row => ({
@@ -140,6 +147,32 @@ export const contractorProfileFromDb = (baseRow, contractorRow) => ({
   years: contractorRow?.years_experience || "",
   serviceArea: contractorRow?.service_area || "",
   photo: contractorRow?.photo_url || "",
+});
+
+// Public Find Contractors directory row -- from the contractor_directory
+// view, which is readable by anyone (including guests) and already
+// aggregates each contractor's real rating server-side.
+export const contractorDirectoryFromDb = row => ({
+  id: row.id,
+  name: row.name || "",
+  email: row.email || "",
+  company: row.company || "",
+  phone: row.phone || "",
+  city: row.city || "",
+  state: row.state || "",
+  bio: row.bio || "",
+  trades: row.trades || [],
+  licensed: row.licensed || false,
+  insured: row.insured || false,
+  backgroundCheck: row.background_check || false,
+  website: row.website || "",
+  licenseNum: row.license_num || "",
+  insurance: row.insurance || "",
+  years: row.years_experience || "",
+  serviceArea: row.service_area || "",
+  photo: row.photo_url || "",
+  rating: Number(row.rating) || 5.0,
+  reviewCount: Number(row.review_count) || 0,
 });
 
 export const consumerProfileFromDb = (baseRow, consumerRow) => ({

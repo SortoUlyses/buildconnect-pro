@@ -245,7 +245,7 @@ export function ContractorPortal({ auth, leads, bids, onBid, onAcceptBid, profil
                 <p>No new leads match your filters. Adjust the filters above or check back later.</p>
               </div>
             ) : sortLeads(newLeads).map(lead =>
-              <LeadCard key={lead.id} lead={lead} bids={bids} onBid={onBid} onAcceptBid={onAcceptBid} contractorMode={true} estimates={estimates} setEstimates={setEstimates} onMessageLead={lead=>{ setPendingLeadMessage(lead); if(navigateToSection) navigateToSection("contractor_messages"); }} saved={savedLeadIds.has(lead.id)} onToggleSave={toggleSaveLead} profile={profile} workOrders={workOrders} onSignWorkOrder={signWorkOrder} />
+              <LeadCard key={lead.id} lead={lead} bids={bids} onBid={onBid} onAcceptBid={onAcceptBid} contractorMode={true} estimates={estimates} setEstimates={setEstimates} onMessageLead={lead=>{ setPendingLeadMessage(lead); if(navigateToSection) navigateToSection("contractor_messages"); }} saved={savedLeadIds.has(lead.id)} onToggleSave={toggleSaveLead} profile={profile} workOrders={workOrders} onSignWorkOrder={signWorkOrder} contractorId={auth?.id} />
             )
           )}
 
@@ -258,7 +258,7 @@ export function ContractorPortal({ auth, leads, bids, onBid, onAcceptBid, profil
               const myBid = bids.find(b => b.leadId === lead.id);
               return (
                 <div key={lead.id} style={{ marginBottom:14 }}>
-                  <LeadCard lead={lead} bids={bids} onBid={onBid} onAcceptBid={onAcceptBid} contractorMode={true} estimates={estimates} setEstimates={setEstimates} onMessageLead={lead=>{ setPendingLeadMessage(lead); if(navigateToSection) navigateToSection("contractor_messages"); }} saved={savedLeadIds.has(lead.id)} onToggleSave={toggleSaveLead} workOrders={workOrders} onSignWorkOrder={signWorkOrder} />
+                  <LeadCard lead={lead} bids={bids} onBid={onBid} onAcceptBid={onAcceptBid} contractorMode={true} estimates={estimates} setEstimates={setEstimates} onMessageLead={lead=>{ setPendingLeadMessage(lead); if(navigateToSection) navigateToSection("contractor_messages"); }} saved={savedLeadIds.has(lead.id)} onToggleSave={toggleSaveLead} workOrders={workOrders} onSignWorkOrder={signWorkOrder} contractorId={auth?.id} />
                   {myBid && (
                     <div style={{ display:"flex", justifyContent:"flex-end", marginTop:6 }}>
                       <Badge text={myBid.status === "accepted" ? "Bid Accepted" : myBid.status === "declined" ? "Bid Declined" : "Bid Submitted"} color={myBid.status==="accepted"?"#0F6E56":myBid.status==="declined"?"#A32D2D":"#185FA5"} bg={myBid.status==="accepted"?"#E1F5EE":myBid.status==="declined"?"#FCEBEB":"#E6F1FB"} />
@@ -275,7 +275,7 @@ export function ContractorPortal({ auth, leads, bids, onBid, onAcceptBid, profil
                 <p>No saved leads yet. Click "Save" on any lead to bookmark it here.</p>
               </div>
             ) : savedLeads.map(lead =>
-              <LeadCard key={lead.id} lead={lead} bids={bids} onBid={onBid} onAcceptBid={onAcceptBid} contractorMode={true} estimates={estimates} setEstimates={setEstimates} onMessageLead={lead=>{ setPendingLeadMessage(lead); if(navigateToSection) navigateToSection("contractor_messages"); }} saved={savedLeadIds.has(lead.id)} onToggleSave={toggleSaveLead} workOrders={workOrders} onSignWorkOrder={signWorkOrder} />
+              <LeadCard key={lead.id} lead={lead} bids={bids} onBid={onBid} onAcceptBid={onAcceptBid} contractorMode={true} estimates={estimates} setEstimates={setEstimates} onMessageLead={lead=>{ setPendingLeadMessage(lead); if(navigateToSection) navigateToSection("contractor_messages"); }} saved={savedLeadIds.has(lead.id)} onToggleSave={toggleSaveLead} workOrders={workOrders} onSignWorkOrder={signWorkOrder} contractorId={auth?.id} />
             )
           )}
         </div>
