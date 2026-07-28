@@ -399,6 +399,51 @@ export const MARKET_DATA = {
       "Tenant Improvement":   { samples:54, low:14000, avg:31000,  high:52000 },
       "Service Upgrade":      { samples:27, low:19000, avg:47000,  high:83000 },
     },
+    "Plumbing": {
+      "Fixture & Drain":      { samples:37, low:5200,   avg:11800,  high:19500 },
+      "Grease Trap & Kitchen":{ samples:22, low:10500,  avg:22000,  high:38000 },
+      "Full System":          { samples:14, low:42000,  avg:82000,  high:145000},
+    },
+    "Roofing": {
+      "TPO / Flat Roof (Small)":{ samples:29, low:21000,  avg:33000,  high:48000 },
+      "Mid-Size Commercial":    { samples:18, low:52000,  avg:92000,  high:145000},
+      "Large Facility":         { samples:9,  low:155000, avg:280000, high:480000},
+    },
+    "Remodel": {
+      "Cosmetic Buildout":   { samples:33, low:32000,  avg:58000,  high:95000  },
+      "Tenant Improvement":  { samples:21, low:105000, avg:210000, high:380000 },
+      "Full Commercial Gut": { samples:7,  low:420000, avg:850000, high:1800000},
+    },
+    "Flooring": {
+      "Carpet / VCT Office":    { samples:41, low:8500,  avg:16000,  high:28000 },
+      "Polished Concrete":      { samples:19, low:21000, avg:36000,  high:57000 },
+      "Full Building Flooring": { samples:12, low:55000, avg:110000, high:190000},
+    },
+    "Painting": {
+      "Office Interior":   { samples:44, low:5500,  avg:11000,  high:19000 },
+      "Building Exterior": { samples:24, low:21000, avg:42000,  high:76000 },
+      "Full Campus":       { samples:8,  low:85000, avg:160000, high:285000},
+    },
+    "Concrete": {
+      "Parking Lot Repair":  { samples:26, low:11000, avg:22000,  high:38000 },
+      "Parking Lot Replace": { samples:14, low:42000, avg:95000,  high:190000},
+      "Structural / Slab":   { samples:9,  low:55000, avg:180000, high:470000},
+    },
+    "Landscaping": {
+      "Commercial Property": { samples:31, low:11000,  avg:24000,  high:47000 },
+      "Office Campus":       { samples:16, low:52000,  avg:105000, high:190000},
+      "Resort / Hotel":      { samples:6,  low:210000, avg:450000, high:950000},
+    },
+    "Solar": {
+      "Small Commercial (25-50 kW)":{ samples:23, low:57000,  avg:78000,  high:105000 },
+      "Mid Commercial (50-200 kW)": { samples:14, low:112000, avg:230000, high:380000 },
+      "Large System (200 kW+)":     { samples:6,  low:410000, avg:750000, high:1400000},
+    },
+    "Windows": {
+      "Storefront (Small)":     { samples:27, low:8500,   avg:15000,  high:24000 },
+      "Curtain Wall (Mid)":     { samples:11, low:52000,  avg:105000, high:190000},
+      "Full Building Glazing":  { samples:5,  low:210000, avg:450000, high:950000},
+    },
   },
 };
 
