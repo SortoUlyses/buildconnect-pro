@@ -400,27 +400,30 @@ export default function App() {
 
   // Contractor: bid accepted
   useEffect(() => {
+    if (auth?.role !== "contractor") return;
     const newlyAccepted = bids.filter(b => b.status==="accepted" && !seenAcceptedRef.current.has(b.id));
     newlyAccepted.forEach(bid => {
       const lead = leads.find(l=>l.id===bid.leadId)||{};
       addNotification({ type:"bid_won", title:"🎉 Bid Accepted", body:"Your bid of " + fmt$(bid.amount) + " for \"" + (lead.projectTitle||"a project") + "\" was accepted.", nav:"contractor_leads" });
       seenAcceptedRef.current.add(bid.id);
     });
-  }, [bids]);
+  }, [bids, auth?.role]);
 
   // Contractor: bid declined
   useEffect(() => {
+    if (auth?.role !== "contractor") return;
     const newlyDeclined = bids.filter(b => b.status==="declined" && !seenDeclinedRef.current.has(b.id));
     newlyDeclined.forEach(bid => {
       const lead = leads.find(l=>l.id===bid.leadId)||{};
       addNotification({ type:"bid_declined", title:"😔 Bid Not Selected", body:"Your bid for \"" + (lead.projectTitle||"a project") + "\" was not selected this time.", nav:"contractor_leads" });
       seenDeclinedRef.current.add(bid.id);
     });
-  }, [bids]);
+  }, [bids, auth?.role]);
 
   // Contractor: new matching lead — split urgent vs standard
   const seenUrgentLeadsRef = useRef(new Set());
   useEffect(() => {
+    if (auth?.role !== "contractor") return;
     const contractorTrades = new Set(profile?.trades||[]);
     const contractorCity = (profile?.city||"").toLowerCase();
     const newLeads = leads.filter(l => !seenLeadsRef.current.has(l.id));
@@ -452,11 +455,12 @@ export default function App() {
         });
       }
     });
-  }, [leads, profile]);
+  }, [leads, profile, auth?.role]);
 
   // Contractor: invoice marked paid — payment received
   const seenPaidInvoicesRef = useRef(new Set(invoices.filter(i=>i.status==="paid").map(i=>i.id)));
   useEffect(() => {
+    if (auth?.role !== "contractor") return;
     const newlyPaid = invoices.filter(i => i.status==="paid" && !seenPaidInvoicesRef.current.has(i.id));
     newlyPaid.forEach(inv => {
       const total = (inv.items||[]).reduce((s,it)=>s+(Number(it.qty)*Number(it.rate)||0),0);
@@ -468,10 +472,11 @@ export default function App() {
       });
       seenPaidInvoicesRef.current.add(inv.id);
     });
-  }, [invoices]);
+  }, [invoices, auth?.role]);
 
   // Consumer: new bid received on their lead
   useEffect(() => {
+    if (auth?.role !== "consumer") return;
     const myLeadIds = new Set(leads.map(l=>l.id));
     const newBids = bids.filter(b => myLeadIds.has(b.leadId) && b.status==="pending" && !seenBidsOnLeadsRef.current.has(b.id));
     newBids.forEach(bid => {
@@ -479,11 +484,12 @@ export default function App() {
       addNotification({ type:"new_bid", title:"💬 New Bid Received", body:"A contractor submitted a bid for \"" + (lead.projectTitle||"your project") + "\". Review it in My Projects.", nav:"myLeads" });
       seenBidsOnLeadsRef.current.add(bid.id);
     });
-  }, [bids]);
+  }, [bids, auth?.role]);
 
   // Consumer: confirm their urgent project was prioritized
   const seenUrgentConsumerRef = useRef(new Set());
   useEffect(() => {
+    if (auth?.role !== "consumer") return;
     const urgentLeads = leads.filter(l =>
       (l.urgency === "Emergency" || l.urgency === "Urgent") &&
       !seenUrgentConsumerRef.current.has(l.id)
@@ -497,7 +503,7 @@ export default function App() {
         nav: "myLeads",
       });
     });
-  }, [leads]);
+  }, [leads, auth?.role]);
 
   // Slow clock tick so the fallback check below re-runs periodically even
   // when no new data has loaded (deadlines pass in real time, not on fetch).
@@ -511,6 +517,7 @@ export default function App() {
   // and fell back to the open pool — let the homeowner know it's still moving.
   const seenFallbackRef = useRef(new Set());
   useEffect(() => {
+    if (auth?.role !== "consumer") return;
     const fellBack = leads.filter(l =>
       l.contractorId && l.directDeadline &&
       new Date(l.directDeadline) <= new Date() &&
@@ -527,7 +534,7 @@ export default function App() {
         nav: "myLeads",
       });
     });
-  }, [leads, realContractors, clockTick]);
+  }, [leads, realContractors, clockTick, auth?.role]);
 
   const navigateTo = (newView, prefill = null) => {
     window.scrollTo(0, 0);
