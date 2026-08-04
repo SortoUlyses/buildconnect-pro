@@ -56,13 +56,13 @@ export function ContractorPortal({ auth, leads, bids, onBid, onAcceptBid, profil
     if (error) { console.error("Failed to create invoice from bid:", error); return; }
     setInvoices(prev => [invoiceFromDb(data), ...prev]);
     setBidWonAlert(null);
-    setTab("invoices");
+    goToSection("contractor_business", "invoices");
   };
 
   // Open Projects tab pre-filled from the won bid
   const openInProjects = (bid, lead) => {
     setBidWonAlert(null);
-    setTab("projects");
+    goToSection("contractor_business", "projects");
   };
 
   const filtered = leads.filter(l => {
@@ -114,7 +114,7 @@ export function ContractorPortal({ auth, leads, bids, onBid, onAcceptBid, profil
 
   const sendInvoiceToProjects = inv => {
     setPendingProjectInvoice(inv);
-    setTab("projects");
+    goToSection("contractor_business", "projects");
   };
 
   const BUSINESS_TABS = [
@@ -284,8 +284,6 @@ export function ContractorPortal({ auth, leads, bids, onBid, onAcceptBid, profil
           )}
         </div>
       )}
-      {tab==="projects" && <ProjectManagerTab bids={bids} leads={leads} projects={projects} setProjects={setProjects} invoices={invoices} expenses={expenses} setExpenses={setExpenses} schedule={schedule} setSchedule={setSchedule} pendingFromInvoice={pendingProjectInvoice} onConsumePendingInvoice={()=>setPendingProjectInvoice(null)} auth={auth} />}
-
       {/* — Section: Messages — */}
       {section==="messages" && <MessagesTab auth={auth} threads={messages} setThreads={setMessages} leads={leads} bids={bids} pendingLeadMessage={pendingLeadMessage} onConsumePendingLeadMessage={()=>setPendingLeadMessage(null)} />}
 
