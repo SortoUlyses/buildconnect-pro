@@ -3,7 +3,7 @@ import { S, TRADES, URGENCY, BUDGET_RANGES, TRADE_BUDGET_RANGES, INV_STATUS, EST
 import { load, save, uid, timeAgo, fmt$, getDateRange, filterByDateRange, sameProject, matchProject } from "../utils.js";
 import { Btn, Badge, Field, Card, SectionTitle } from "../components/ui.jsx";
 import { supabase } from "../lib/supabaseClient.js";
-import { expenseFromDb, expenseToDb, projectFromDb, projectToDb, projectCrewFromDb, projectCrewToDb, projectMaterialFromDb, projectMaterialToDb, projectExpenseRowFromDb, projectExpenseRowToDb, projectPermitFeeFromDb, projectPermitFeeToDb, projectSubcontractorFromDb, projectSubcontractorToDb, projectPermitFromDb, projectPhotoRowFromDb } from "../lib/mappers.js";
+import { expenseFromDb, expenseToDb, projectFromDb, projectToDb, projectCrewFromDb, projectCrewToDb, projectMaterialFromDb, projectMaterialToDb, projectExpenseRowFromDb, projectExpenseRowToDb, projectPermitFeeFromDb, projectPermitFeeToDb, projectSubcontractorFromDb, projectSubcontractorToDb, projectPermitFromDb, projectPhotoRowFromDb, scheduleEventFromDb, scheduleEventToDb } from "../lib/mappers.js";
 import { uploadContractorPhoto, deleteContractorPhoto } from "../lib/storage.js";
 
 // — Contractor Portal (tabs: Leads, Profile, Photos, Invoices, Schedule) ------
@@ -819,7 +819,7 @@ export function ProjectPhotosSection({ projectPhotos, projectKey, projectId, set
   );
 }
 
-export function ProjectManagerTab({ bids, leads, projects, setProjects, invoices, expenses, setExpenses, schedule, pendingFromInvoice, onConsumePendingInvoice, auth }) {
+export function ProjectManagerTab({ bids, leads, projects, setProjects, invoices, expenses, setExpenses, schedule, setSchedule, pendingFromInvoice, onConsumePendingInvoice, auth }) {
   const [showArchive, setShowArchive] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -898,7 +898,32 @@ const DEFAULT_PROJECT_DETAIL = { stage: "not_started", notes: "", startDate: "",
     Object.entries(patch).forEach(([k, v]) => { if (PROJECT_FIELD_TO_COLUMN[k]) dbPatch[PROJECT_FIELD_TO_COLUMN[k]] = v === "" ? null : v; });
     if (completingNow !== undefined) dbPatch.completed_at = completingNow;
     const { error } = await supabase.from("projects").update(dbPatch).eq("id", current.id);
-    if (error) console.error("Failed to update project:", error);
+    if (error) { console.error("Failed to update project:", error); return; }
+
+    // Keep a linked schedule_events row in sync with the project's start date, so it
+    // shows up on the Dashboard's Upcoming Schedule widget, the Schedule tab calendar,
+    // and this project's own "Scheduled Site Visits" section — all three read from
+    // schedule_events, not from projects.start_date directly.
+    if ("startDate" in patch && typeof setSchedule === "function") {
+      const merged = { ...current, ...patch };
+      const existingEvt = (schedule || []).find(e => e.linkedProjectKey === key);
+      if (!patch.startDate) {
+        if (existingEvt) {
+          const { error: delErr } = await supabase.from("schedule_events").delete().eq("id", existingEvt.id);
+          if (delErr) console.error("Failed to remove linked schedule event:", delErr);
+          else setSchedule(prev => prev.filter(e => e.id !== existingEvt.id));
+        }
+      } else if (existingEvt) {
+        const { data, error: updErr } = await supabase.from("schedule_events").update({ date: patch.startDate }).eq("id", existingEvt.id).select().single();
+        if (updErr) console.error("Failed to update linked schedule event:", updErr);
+        else setSchedule(prev => prev.map(e => e.id === existingEvt.id ? scheduleEventFromDb(data) : e));
+      } else {
+        const evt = { title: merged.projectTitle || "Untitled Project", client: merged.clientName || "", date: patch.startDate, startTime: "", endTime: "", notes: "", color: "", linkedProjectKey: key, repeat: "" };
+        const { data, error: insErr } = await supabase.from("schedule_events").insert({ ...scheduleEventToDb(evt), contractor_id: auth.id }).select().single();
+        if (insErr) console.error("Failed to create linked schedule event:", insErr);
+        else setSchedule(prev => [scheduleEventFromDb(data), ...prev]);
+      }
+    }
   };
 
   const deleteManualProject = async key => {

@@ -280,7 +280,7 @@ export function ContractorPortal({ auth, leads, bids, onBid, onAcceptBid, profil
           )}
         </div>
       )}
-      {tab==="projects" && <ProjectManagerTab bids={bids} leads={leads} projects={projects} setProjects={setProjects} invoices={invoices} expenses={expenses} setExpenses={setExpenses} schedule={schedule} pendingFromInvoice={pendingProjectInvoice} onConsumePendingInvoice={()=>setPendingProjectInvoice(null)} auth={auth} />}
+      {tab==="projects" && <ProjectManagerTab bids={bids} leads={leads} projects={projects} setProjects={setProjects} invoices={invoices} expenses={expenses} setExpenses={setExpenses} schedule={schedule} setSchedule={setSchedule} pendingFromInvoice={pendingProjectInvoice} onConsumePendingInvoice={()=>setPendingProjectInvoice(null)} auth={auth} />}
 
       {/* — Section: Messages — */}
       {section==="messages" && <MessagesTab auth={auth} threads={messages} setThreads={setMessages} leads={leads} bids={bids} pendingLeadMessage={pendingLeadMessage} onConsumePendingLeadMessage={()=>setPendingLeadMessage(null)} />}
@@ -289,7 +289,7 @@ export function ContractorPortal({ auth, leads, bids, onBid, onAcceptBid, profil
       {section==="business" && (
         <>
           {renderSubNav(BUSINESS_TABS, businessTab, setBusinessTab)}
-          {businessTab==="projects"  && <ProjectManagerTab bids={bids} leads={leads} projects={projects} setProjects={setProjects} invoices={invoices} expenses={expenses} setExpenses={setExpenses} schedule={schedule} pendingFromInvoice={pendingProjectInvoice} onConsumePendingInvoice={()=>setPendingProjectInvoice(null)} auth={auth} />}
+          {businessTab==="projects"  && <ProjectManagerTab bids={bids} leads={leads} projects={projects} setProjects={setProjects} invoices={invoices} expenses={expenses} setExpenses={setExpenses} schedule={schedule} setSchedule={setSchedule} pendingFromInvoice={pendingProjectInvoice} onConsumePendingInvoice={()=>setPendingProjectInvoice(null)} auth={auth} />}
           {businessTab==="estimates" && <EstimatesTab estimates={estimates} setEstimates={setEstimates} invoices={invoices} setInvoices={setInvoices} auth={auth} />}
           {businessTab==="invoices"  && <InvoicesTab invoices={invoices} setInvoices={setInvoices} onSendToProjects={sendInvoiceToProjects} projectLinkedInvoiceIds={projectLinkedInvoiceIds} auth={auth} projects={projects} />}
           {businessTab==="expenses"  && <ExpensesTab expenses={expenses} setExpenses={setExpenses} invoices={invoices} projects={projects} bids={bids} leads={leads} auth={auth} />}
