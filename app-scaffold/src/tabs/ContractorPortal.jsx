@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { S, TRADES, URGENCY, BUDGET_RANGES, TRADE_BUDGET_RANGES, INV_STATUS, EST_STATUS, EXPENSE_CATEGORIES, PROJECT_STAGES } from "../constants.js";
 import { load, save, uid, timeAgo, fmt$, getDateRange, filterByDateRange, sameProject, matchProject } from "../utils.js";
 import { Btn, Badge, Field, Card, SectionTitle } from "../components/ui.jsx";
+import { supabase } from "../lib/supabaseClient.js";
+import { invoiceFromDb, invoiceToDb } from "../lib/mappers.js";
 import { ProfileTab } from "./ProfileTab.jsx";
 import { PhotosTab } from "./PhotosTab.jsx";
 import { InvoicesTab } from "./InvoicesTab.jsx";
@@ -35,22 +37,24 @@ export function ContractorPortal({ auth, leads, bids, onBid, onAcceptBid, profil
     }
   }, [bids, leads]);
 
-  // Create a pre-filled invoice from the won bid and open Invoices tab
-  const createInvoiceFromBid = (bid, lead) => {
+  // Create a pre-filled invoice from the won bid and open Invoices tab.
+  // Writes straight to Supabase (like every other invoice in the app) instead
+  // of local-only state, so it survives a page reload.
+  const createInvoiceFromBid = async (bid, lead) => {
     const newInv = {
-      id: uid(),
       number: `INV-${Date.now().toString().slice(-5)}`,
       client: lead.name || "",
       email: lead.email || "",
       project: lead.projectTitle || "",
-      projectKey: bid.id,
       date: new Date().toISOString().slice(0,10),
       due: "",
       status: "draft",
       notes: `From accepted bid — ${bid.company || ""}. ${bid.message || ""}`.trim(),
       items: [{ desc: lead.projectTitle || "Construction services", qty: 1, rate: bid.amount || "" }],
     };
-    setInvoices(prev => { const u = [newInv, ...prev]; save(S.invoices, u); return u; });
+    const { data, error } = await supabase.from("invoices").insert({ ...invoiceToDb(newInv), contractor_id: auth.id }).select().single();
+    if (error) { console.error("Failed to create invoice from bid:", error); return; }
+    setInvoices(prev => [invoiceFromDb(data), ...prev]);
     setBidWonAlert(null);
     setTab("invoices");
   };
