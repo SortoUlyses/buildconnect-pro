@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { S, TRADES, URGENCY, BUDGET_RANGES, TRADE_BUDGET_RANGES, INV_STATUS, EST_STATUS, EXPENSE_CATEGORIES, PROJECT_STAGES } from "../constants.js";
 import { load, save, uid, timeAgo, fmt$, getDateRange, filterByDateRange, sameProject, matchProject } from "../utils.js";
 import { Btn, Badge, Field, Card, SectionTitle } from "../components/ui.jsx";
@@ -16,7 +16,7 @@ import { LeadCard } from "./LeadCard.jsx";
 import { ProjectManagerTab } from "./ProjectManager.jsx";
 import { DashboardTab } from "./DashboardTab.jsx";
 
-export function ContractorPortal({ auth, leads, bids, onBid, onAcceptBid, profile, setProfile, photos, setPhotos, invoices, setInvoices, schedule, setSchedule, estimates, setEstimates, expenses, setExpenses, messages, setMessages, reviews, setReviews, projects, setProjects, section, navigateToSection, workOrders, signWorkOrder }) {
+export function ContractorPortal({ auth, leads, bids, onBid, onAcceptBid, profile, setProfile, photos, setPhotos, invoices, setInvoices, schedule, setSchedule, estimates, setEstimates, expenses, setExpenses, messages, setMessages, reviews, setReviews, projects, setProjects, notifications, setNotifications, section, navigateToSection, workOrders, signWorkOrder }) {
   const [tab, setTab] = useState("dashboard"); // kept for legacy cross-nav compatibility
   const [businessTab, setBusinessTab] = useState("projects");
   const [profileTab, setProfileTab] = useState("profile");
@@ -24,23 +24,36 @@ export function ContractorPortal({ auth, leads, bids, onBid, onAcceptBid, profil
   const [pendingProjectInvoice, setPendingProjectInvoice] = useState(null);
   const [pendingLeadMessage, setPendingLeadMessage] = useState(null);
   const [bidWonAlert, setBidWonAlert] = useState(null);
-  const seenBidWonRef = useRef(new Set(bids.filter(b=>b.status==="accepted").map(b=>b.id)));
 
-  // Show the bid-won celebration modal when a bid is accepted
+  // Mark a notification read in Supabase (durable — persists across reloads/logins,
+  // unlike the old in-memory-only tracker this replaced).
+  const markNotificationRead = async id => {
+    const { error } = await supabase.from("notifications").update({ read: true }).eq("id", id);
+    if (error) { console.error("Failed to mark notification read:", error); return; }
+    setNotifications(prev => (prev || []).map(n => n.id === id ? { ...n, read: true } : n));
+  };
+
+  // Show the bid-won celebration modal, driven off unread bid_accepted
+  // notifications rather than an in-memory "have I shown this" guess. Shows
+  // the oldest unread one; dismissing it (any of the three buttons) marks it
+  // read, which lets the next unread one (if any) surface on the next pass.
   useEffect(() => {
-    const newlyAccepted = bids.filter(b => b.status === "accepted" && !seenBidWonRef.current.has(b.id));
-    if (newlyAccepted.length > 0) {
-      const bid = newlyAccepted[0];
-      const lead = leads.find(l => l.id === bid.leadId) || {};
-      setBidWonAlert({ bid, lead });
-      newlyAccepted.forEach(b => seenBidWonRef.current.add(b.id));
-    }
-  }, [bids, leads]);
+    if (bidWonAlert) return;
+    const unread = (notifications || [])
+      .filter(n => n.type === "bid_accepted" && !n.read)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    if (unread.length === 0) return;
+    const notif = unread[0];
+    const bid = bids.find(b => b.id === notif.relatedBidId);
+    if (!bid) return; // orphaned notification (its bid was deleted) — nothing to show
+    const lead = leads.find(l => l.id === bid.leadId) || {};
+    setBidWonAlert({ bid, lead, notifId: notif.id });
+  }, [notifications, bids, leads, bidWonAlert]);
 
   // Create a pre-filled invoice from the won bid and open Invoices tab.
   // Writes straight to Supabase (like every other invoice in the app) instead
   // of local-only state, so it survives a page reload.
-  const createInvoiceFromBid = async (bid, lead) => {
+  const createInvoiceFromBid = async (bid, lead, notifId) => {
     const newInv = {
       number: `INV-${Date.now().toString().slice(-5)}`,
       client: lead.name || "",
@@ -56,12 +69,14 @@ export function ContractorPortal({ auth, leads, bids, onBid, onAcceptBid, profil
     if (error) { console.error("Failed to create invoice from bid:", error); return; }
     setInvoices(prev => [invoiceFromDb(data), ...prev]);
     setBidWonAlert(null);
+    if (notifId) markNotificationRead(notifId);
     goToSection("contractor_business", "invoices");
   };
 
   // Open Projects tab pre-filled from the won bid
-  const openInProjects = (bid, lead) => {
+  const openInProjects = (bid, lead, notifId) => {
     setBidWonAlert(null);
+    if (notifId) markNotificationRead(notifId);
     goToSection("contractor_business", "projects");
   };
 
@@ -167,18 +182,18 @@ export function ContractorPortal({ auth, leads, bids, onBid, onAcceptBid, profil
             <div style={{ fontSize:20, fontWeight:900, color:"#0F6E56", marginBottom:20 }}>${Number(bidWonAlert.bid.amount).toLocaleString()}</div>
             <p style={{ fontSize:13, color:"#2C2C2A", marginBottom:22 }}>What would you like to do next?</p>
             <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:12 }}>
-              <button onClick={()=>createInvoiceFromBid(bidWonAlert.bid, bidWonAlert.lead)}
+              <button onClick={()=>createInvoiceFromBid(bidWonAlert.bid, bidWonAlert.lead, bidWonAlert.notifId)}
                 style={{ background:"#0C447C", color:"#fff", border:"none", borderRadius:10, padding:"14px 10px", cursor:"pointer", fontFamily:"inherit", fontWeight:700, fontSize:13 }}>
                  Create Invoice
                 <div style={{ fontSize:11, fontWeight:400, marginTop:3, opacity:0.8 }}>Pre-filled & ready to send</div>
               </button>
-              <button onClick={()=>openInProjects(bidWonAlert.bid, bidWonAlert.lead)}
+              <button onClick={()=>openInProjects(bidWonAlert.bid, bidWonAlert.lead, bidWonAlert.notifId)}
                 style={{ background:"#0F6E56", color:"#fff", border:"none", borderRadius:10, padding:"14px 10px", cursor:"pointer", fontFamily:"inherit", fontWeight:700, fontSize:13 }}>
                  Open in Projects
                 <div style={{ fontSize:11, fontWeight:400, marginTop:3, opacity:0.8 }}>Track crew, expenses & schedule</div>
               </button>
             </div>
-            <button onClick={()=>setBidWonAlert(null)} style={{ background:"none", border:"none", fontSize:13, color:"#2C2C2A", cursor:"pointer", fontFamily:"inherit", textDecoration:"underline" }}>
+            <button onClick={()=>{ if (bidWonAlert.notifId) markNotificationRead(bidWonAlert.notifId); setBidWonAlert(null); }} style={{ background:"none", border:"none", fontSize:13, color:"#2C2C2A", cursor:"pointer", fontFamily:"inherit", textDecoration:"underline" }}>
               I'll do this later
             </button>
           </div>

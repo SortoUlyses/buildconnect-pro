@@ -5,7 +5,7 @@ import { DEMO_CONTRACTORS, MATCHED_CONTRACTORS } from './demoData.js';
 import { Btn, Badge, Field, Card, SectionTitle } from './components/ui.jsx';
 import { supabase } from './lib/supabaseClient.js';
 import { signOut } from './lib/auth.js';
-import { leadFromDb, leadToDb, bidFromDb, bidToDb, threadFromDb, workOrderFromDb, contractorProfileFromDb, consumerProfileFromDb, contractorDirectoryFromDb, invoiceFromDb, estimateFromDb, reviewFromDb, scheduleEventFromDb, expenseFromDb, contractorPhotoFromDb, projectFromDb, projectCrewFromDb, projectMaterialFromDb, projectExpenseRowFromDb, projectPermitFeeFromDb, projectSubcontractorFromDb, projectPermitFromDb, projectPhotoRowFromDb } from './lib/mappers.js';
+import { leadFromDb, leadToDb, bidFromDb, bidToDb, threadFromDb, workOrderFromDb, contractorProfileFromDb, consumerProfileFromDb, contractorDirectoryFromDb, invoiceFromDb, estimateFromDb, reviewFromDb, scheduleEventFromDb, expenseFromDb, contractorPhotoFromDb, projectFromDb, projectCrewFromDb, projectMaterialFromDb, projectExpenseRowFromDb, projectPermitFeeFromDb, projectSubcontractorFromDb, projectPermitFromDb, projectPhotoRowFromDb, notificationFromDb } from './lib/mappers.js';
 
 import { ProfileTab } from './tabs/ProfileTab.jsx';
 import { PhotosTab, CaptionEditor } from './tabs/PhotosTab.jsx';
@@ -68,6 +68,10 @@ export default function App() {
   const [schedule, setSchedule] = useState([]);
   const [estimates, setEstimates] = useState([]);
   const [expenses, setExpenses] = useState([]);
+  // Durable, server-inserted notifications (see the notifications table triggers).
+  // Named dbNotifications to avoid colliding with the older client-side-only
+  // "notifications" bell state declared further down.
+  const [dbNotifications, setDbNotifications] = useState([]);
   // messages now come from Supabase (see the loading effects near the auth section)
   const [messages, setMessages] = useState([]);
   // reviews now come from Supabase (see the loading effects near the auth section)
@@ -240,7 +244,7 @@ export default function App() {
   // Invoices/estimates/schedule/expenses/photos, scoped by RLS the same way
   // leads/bids are — a contractor gets their own, loaded once per login.
   useEffect(() => {
-    if (!auth) { setInvoices([]); setEstimates([]); setSchedule([]); setExpenses([]); setPhotos([]); return; }
+    if (!auth) { setInvoices([]); setEstimates([]); setSchedule([]); setExpenses([]); setPhotos([]); setDbNotifications([]); return; }
     (async () => {
       const [
         { data: invRows, error: invErr },
@@ -248,23 +252,27 @@ export default function App() {
         { data: schedRows, error: schedErr },
         { data: expRows, error: expErr },
         { data: photoRows, error: photoErr },
+        { data: notifRows, error: notifErr },
       ] = await Promise.all([
         supabase.from("invoices").select("*").order("created_at", { ascending: false }),
         supabase.from("estimates").select("*").order("created_at", { ascending: false }),
         supabase.from("schedule_events").select("*").order("date", { ascending: true }),
         supabase.from("expenses").select("*").order("date", { ascending: false }),
         supabase.from("contractor_photos").select("*").eq("contractor_id", auth.id).order("position", { ascending: true }),
+        supabase.from("notifications").select("*").order("created_at", { ascending: false }),
       ]);
       if (invErr) console.error("Failed to load invoices:", invErr);
       if (estErr) console.error("Failed to load estimates:", estErr);
       if (schedErr) console.error("Failed to load schedule:", schedErr);
       if (expErr) console.error("Failed to load expenses:", expErr);
       if (photoErr) console.error("Failed to load photos:", photoErr);
+      if (notifErr) console.error("Failed to load notifications:", notifErr);
       setInvoices((invRows || []).map(invoiceFromDb));
       setEstimates((estRows || []).map(estimateFromDb));
       setSchedule((schedRows || []).map(scheduleEventFromDb));
       setExpenses((expRows || []).map(expenseFromDb));
       setPhotos((photoRows || []).map(contractorPhotoFromDb));
+      setDbNotifications((notifRows || []).map(notificationFromDb));
     })();
   }, [auth?.id]);
 
@@ -1034,6 +1042,7 @@ export default function App() {
                 messages={messages} setMessages={setMessages}
                 reviews={reviews} setReviews={setReviews}
                 projects={projects} setProjects={setProjects}
+                notifications={dbNotifications} setNotifications={setDbNotifications}
                 section={view.replace("contractor_", "")}
                 navigateToSection={navigateTo}
                 workOrders={workOrders} signWorkOrder={signWorkOrder}

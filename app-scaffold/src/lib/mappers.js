@@ -257,6 +257,19 @@ export const reviewFromDb = (row, { name, project }) => ({
   date: row.created_at,
 });
 
+export const notificationFromDb = row => ({
+  id: row.id,
+  userId: row.user_id,
+  type: row.type,
+  title: row.title,
+  body: row.body || "",
+  link: row.link || "",
+  relatedLeadId: row.related_lead_id || "",
+  relatedBidId: row.related_bid_id || "",
+  read: row.read,
+  createdAt: row.created_at,
+});
+
 export const scheduleEventFromDb = row => ({
   id: row.id,
   title: row.title,
