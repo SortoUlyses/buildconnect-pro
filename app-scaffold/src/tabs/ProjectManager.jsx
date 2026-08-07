@@ -1154,13 +1154,15 @@ const DEFAULT_PROJECT_DETAIL = { stage: "not_started", notes: "", startDate: "",
                   <PermitFeesSection permitFees={p.permitFees||[]} projectTitle={p.projectTitle} projectKey={p.key} projectId={p.id} setProjects={setProjects} setExpenses={setExpenses} auth={auth} />
                 </div>
 
+                {/* Permit documents — kept directly under Permit Fees since they're both permit-related */}
+                <div style={{ borderTop:"1px solid #F1EFE8", paddingTop:16 }}>
+                  <PermitsUploadSection permits={p.permits||[]} projectKey={p.key} projectId={p.id} setProjects={setProjects} auth={auth} />
+                </div>
+
                 {/* Subcontractors */}
                 <div style={{ borderTop:"1px solid #F1EFE8", paddingTop:16 }}>
                   <SubcontractorsSection subcontractors={p.subcontractors||[]} projectTitle={p.projectTitle} projectKey={p.key} projectId={p.id} setProjects={setProjects} setExpenses={setExpenses} auth={auth} />
                 </div>
-
-                {/* Permit documents */}
-                <PermitsUploadSection permits={p.permits||[]} projectKey={p.key} projectId={p.id} setProjects={setProjects} auth={auth} />
 
                 {/* Job photos */}
                 <ProjectPhotosSection projectPhotos={p.projectPhotos||[]} projectKey={p.key} projectId={p.id} setProjects={setProjects} auth={auth} />
