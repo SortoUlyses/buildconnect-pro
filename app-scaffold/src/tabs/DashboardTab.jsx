@@ -57,7 +57,14 @@ export function DashboardTab({ leads, bids, projects, invoices, expenses, estima
   const recentExpenses = [...expenses].sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,2).map(e=>({ type:"expense", text:`Expense: ${e.description}`, sub:fmt$(e.amount), date:e.date, color:"#A32D2D" }));
   const recentActivity = [...recentInvoices, ...recentExpenses].sort((a,b)=>(b.date||"").localeCompare(a.date||"")).slice(0,5);
 
-  const upcoming = [...schedule].filter(e=>e.date>=todayStr).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,4);
+  // Upcoming Schedule shows both not-yet-started jobs (date in the future)
+  // and currently active jobs (linked project not yet completed), even if
+  // that job's start date has already passed — a job in progress should
+  // keep showing here until it's done, not just up until it starts.
+  const upcoming = [...schedule]
+    .filter(e => e.date>=todayStr || (e.linkedProjectKey && projects[e.linkedProjectKey] && projects[e.linkedProjectKey].stage!=="completed"))
+    .sort((a,b)=>a.date.localeCompare(b.date))
+    .slice(0,4);
 
   const needsAttention = [
     ...overdueInvoices.map(i=>({ type:"invoice", label:`Invoice #${i.number||"?"} overdue`, sub:`${Math.floor((new Date(todayStr)-new Date(i.due||todayStr))/86400000)}d overdue`, amount:fmt$(invTotal(i)), color:"#A32D2D", bg:"#FCEBEB", action:"invoices" })),
@@ -238,15 +245,19 @@ export function DashboardTab({ leads, bids, projects, invoices, expenses, estima
           </div>
           {upcoming.length === 0 ? (
             <div style={{ textAlign:"center", padding:"20px 0", color:"#2C2C2A", fontSize:13 }}>No upcoming jobs scheduled</div>
-          ) : upcoming.map(evt => (
-            <div key={evt.id} style={{ display:"flex", gap:12, alignItems:"center", padding:"8px 0", borderBottom:"1px solid #F1EFE8" }}>
-              <div style={{ width:4, borderRadius:2, alignSelf:"stretch", background:evt.color||"#185FA5", flexShrink:0 }} />
-              <div style={{ flex:1 }}>
-                <div style={{ fontSize:13, fontWeight:600, color:"#2C2C2A" }}>{evt.title}</div>
-                <div style={{ fontSize:11, color:"#2C2C2A" }}>{evt.date}{evt.startTime?` · ${evt.startTime}`:""}</div>
+          ) : upcoming.map(evt => {
+            const linkedProj = evt.linkedProjectKey ? projects[evt.linkedProjectKey] : null;
+            const isActive = linkedProj && linkedProj.stage!=="completed" && evt.date<todayStr;
+            return (
+              <div key={evt.id} style={{ display:"flex", gap:12, alignItems:"center", padding:"8px 0", borderBottom:"1px solid #F1EFE8" }}>
+                <div style={{ width:4, borderRadius:2, alignSelf:"stretch", background:evt.color||"#185FA5", flexShrink:0 }} />
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13, fontWeight:600, color:"#2C2C2A" }}>{evt.title}</div>
+                  <div style={{ fontSize:11, color:"#2C2C2A" }}>{isActive ? `In progress · started ${evt.date}` : `${evt.date}${evt.startTime?` · ${evt.startTime}`:""}`}</div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Performance */}
